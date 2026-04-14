@@ -174,9 +174,9 @@
     <div id="nfc-view" class="hidden">
       <div class="form-card nfc-card">
         <h2>Czytnik NFC</h2>
-        <p>Kliknij przycisk i zbliż tag NFC do telefonu.</p>
-        <button type="button" onclick="startNfcScan()">Rozpocznij skanowanie</button>
+        <p>Zblisz telefon do taga NFC danego produktu.</p>
         <button type="button" class="secondary" onclick="goHome()">Wróć</button>
+        <p id="nfcStatusText" class="products-status">Status: Gotowy do skanowania...</p>
       </div>
     </div>
 
@@ -277,6 +277,13 @@
       document.getElementById('nfc-view').classList.add('hidden');
       document.getElementById('checkout-view').classList.add('hidden');
       document.getElementById(viewId).classList.remove('hidden');
+
+      if (viewId === 'nfc-view') {
+        setNfcStatusText('Status: Gotowy do skanowania...');
+        startNfcScan();
+      } else {
+        resetNfcScanState();
+      }
     }
 
     function goHome() {
@@ -285,6 +292,7 @@
       document.getElementById('nfc-view').classList.add('hidden');
       document.getElementById('checkout-view').classList.add('hidden');
       document.getElementById('home-view').classList.remove('hidden');
+      resetNfcScanState();
       isCartExpanded = false;
       document.getElementById('cartDetails').classList.add('hidden');
       document.getElementById('cartToggleText').innerText = 'Koszyk';
@@ -376,6 +384,14 @@
       nfcButton.classList.toggle('hidden', !canShow);
     }
 
+    function setNfcStatusText(message) {
+      const status = document.getElementById('nfcStatusText');
+      if (!status) {
+        return;
+      }
+      status.innerText = message || 'Status: Gotowy do skanowania...';
+    }
+
     function resetNfcScanState() {
       if (nfcScanAbortController) {
         try {
@@ -438,12 +454,14 @@
 
     async function startNfcScan() {
       if (!isMobileChromeBrowser() || !supportsNfcRead()) {
+        setNfcStatusText('Status: NFC niedostępne w tym środowisku.');
         showPush('Web NFC nie jest dostępne w tym środowisku.', true, 3500);
         return;
       }
 
       if (!isTopLevelBrowsingContext()) {
         updateNfcTopLevelHelp();
+        setNfcStatusText('Status: Otwórz stronę w pełnym oknie.');
         showPush('Otwórz pełną wersję strony w nowej karcie Chrome.', true, 3800);
         return;
       }
@@ -457,9 +475,11 @@
         nfcScanAbortController = new AbortController();
         await nfcReader.scan({ signal: nfcScanAbortController.signal });
         nfcScanStarted = true;
+        setNfcStatusText('Status: Skaner aktywny. Zbliż tag NFC.');
         showPush('Skaner NFC aktywny. Zbliż tag.', false, 2600);
 
         nfcReader.addEventListener('readingerror', function() {
+          setNfcStatusText('Status: Błąd odczytu, spróbuj ponownie.');
           showPush('Wystąpił błąd podczas odczytu tagu. Spróbuj ponownie.', true, 3000);
         });
 
@@ -474,8 +494,10 @@
               if (productId) {
                 const added = addToCart(productId);
                 if (added) {
+                  setNfcStatusText('Status: Dodano produkt do koszyka.');
                   return;
                 } else {
+                  setNfcStatusText('Status: Nie znaleziono produktu: ' + productId);
                   showPush('Nie znaleziono produktu: ' + productId, true, 3500);
                 }
               }
@@ -487,15 +509,18 @@
         const errorMessage = error && error.message ? error.message : 'Nieznany błąd';
 
         if (errorName === 'NotAllowedError') {
+          setNfcStatusText('Status: Brak zgody na NFC.');
           showPush('Nie udzielono zgody na NFC.', true, 3600);
           return;
         }
 
         if (errorName === 'NotSupportedError') {
+          setNfcStatusText('Status: Brak obsługi Web NFC.');
           showPush('Brak obsługi Web NFC.', true, 3600);
           return;
         }
 
+        setNfcStatusText('Status: Błąd NFC: ' + errorMessage);
         showPush('Błąd NFC: ' + errorMessage, true, 4200);
       }
     }
