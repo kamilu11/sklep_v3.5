@@ -221,6 +221,14 @@
     let nfcScanStarted = false;
     let nfcScanAbortController = null;
 
+    function normalizeProductId(rawProductId) {
+      const text = (rawProductId === undefined || rawProductId === null) ? '' : String(rawProductId);
+      return text
+        .trim()
+        .replace(/[\u0000-\u001F\u007F]/g, '')
+        .toUpperCase();
+    }
+
     function hasBackendConfig() {
       return typeof appConfig.backendUrl === 'string' && appConfig.backendUrl.trim() !== '' && appConfig.backendUrl.indexOf('UZUPELNIJ_') !== 0;
     }
@@ -444,7 +452,7 @@
 
       try {
         const parsedUrl = new URL(raw);
-        const productIdFromUrl = (parsedUrl.searchParams.get('productId') || '').trim().toUpperCase();
+        const productIdFromUrl = normalizeProductId(parsedUrl.searchParams.get('productId') || '');
         if (productIdFromUrl) {
           return productIdFromUrl;
         }
@@ -454,7 +462,7 @@
 
       const inlineMatch = raw.match(/[?&]productId=([A-Za-z0-9_-]+)/i);
       if (inlineMatch && inlineMatch[1]) {
-        return inlineMatch[1].trim().toUpperCase();
+        return normalizeProductId(inlineMatch[1]);
       }
 
       return '';
@@ -778,20 +786,21 @@
     }
 
     function addToCart(productId, options) {
-      const product = productsById[productId];
+      const normalizedProductId = normalizeProductId(productId);
+      const product = productsById[normalizedProductId];
       if (!product) {
-        showCartFeedback('Nie znaleziono produktu o ID ' + productId + '.', true);
+        showCartFeedback('Nie znaleziono produktu o ID ' + normalizedProductId + '.', true);
         return false;
       }
 
       const existing = cart.find(function(item) {
-        return item.productId === productId;
+        return item.productId === normalizedProductId;
       });
 
       if (existing) {
         existing.quantity += 1;
       } else {
-        cart.push({ productId: productId, quantity: 1 });
+        cart.push({ productId: normalizedProductId, quantity: 1 });
       }
 
       saveCart();
@@ -949,7 +958,7 @@
 
       productsById = {};
       (data.products || []).forEach(function(product) {
-        productsById[product.id] = product;
+        productsById[normalizeProductId(product.id)] = product;
       });
 
       status.innerText = '';
