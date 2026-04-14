@@ -120,22 +120,23 @@
 
       <div id="productsByType"></div>
 
-      <div id="cartDock" class="cart-dock">
-        <div class="cart-dock-bar">
-          <button type="button" class="cart-toggle-button" onclick="toggleCartDetails()">
-            <span id="cartToggleText">Koszyk</span>
-            <span class="cart-badge" id="cartCountBadge">0</span>
-          </button>
-          <span class="cart-dock-total">Razem: <strong id="cartTotal">0.00 zł</strong></span>
-        </div>
+    </div>
 
-        <div id="cartDetails" class="cart-details hidden">
-          <div id="cartFeedback" class="products-status"></div>
-          <div id="cartItems" class="cart-items empty-cart">Koszyk jest pusty.</div>
-          <div class="cart-summary-footer">
-            <button type="button" class="secondary cart-clear-button" onclick="clearCart()">Wyczyść koszyk</button>
-            <button type="button" class="cart-checkout-button" onclick="startCheckout()">Przejdź do realizacji</button>
-          </div>
+    <div id="cartDock" class="cart-dock">
+      <div class="cart-dock-bar">
+        <button type="button" class="cart-toggle-button" onclick="toggleCartDetails()">
+          <span id="cartToggleText">Koszyk</span>
+          <span class="cart-badge" id="cartCountBadge">0</span>
+        </button>
+        <span class="cart-dock-total">Razem: <strong id="cartTotal">0.00 zł</strong></span>
+      </div>
+
+      <div id="cartDetails" class="cart-details hidden">
+        <div id="cartFeedback" class="products-status"></div>
+        <div id="cartItems" class="cart-items empty-cart">Koszyk jest pusty.</div>
+        <div class="cart-summary-footer">
+          <button type="button" class="secondary cart-clear-button" onclick="clearCart()">Wyczyść koszyk</button>
+          <button type="button" class="cart-checkout-button" onclick="startCheckout()">Przejdź do realizacji</button>
         </div>
       </div>
     </div>
@@ -435,6 +436,30 @@
       return '';
     }
 
+    function getProductIdFromNfcPayload(payload) {
+      const raw = (payload || '').toString().trim();
+      if (!raw) {
+        return '';
+      }
+
+      try {
+        const parsedUrl = new URL(raw);
+        const productIdFromUrl = (parsedUrl.searchParams.get('productId') || '').trim().toUpperCase();
+        if (productIdFromUrl) {
+          return productIdFromUrl;
+        }
+      } catch (error) {
+        // To nie jest pełny URL - sprawdzamy wzorzec tekstowy.
+      }
+
+      const inlineMatch = raw.match(/[?&]productId=([A-Za-z0-9_-]+)/i);
+      if (inlineMatch && inlineMatch[1]) {
+        return inlineMatch[1].trim().toUpperCase();
+      }
+
+      return '';
+    }
+
     async function startNfcScan() {
       setScreenMessage('nfcScreenStatus', '', false);
 
@@ -486,6 +511,18 @@
             const decoded = decodeNfcRecordText(record);
             if (decoded) {
               appendNfcLog('Treść: ' + decoded);
+
+              const productId = getProductIdFromNfcPayload(decoded);
+              if (productId) {
+                const added = addToCart(productId);
+                if (added) {
+                  appendNfcLog('Dodano do koszyka produkt ID: ' + productId);
+                  setScreenMessage('nfcScreenStatus', 'Dodano do koszyka: ' + productId, false);
+                } else {
+                  appendNfcLog('Nie udało się dodać produktu ID: ' + productId);
+                  setScreenMessage('nfcScreenStatus', 'Nie znaleziono produktu: ' + productId, true);
+                }
+              }
             }
           }
         });
