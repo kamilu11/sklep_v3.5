@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sklepik</title>
+  <style>
+    body { font-family: sans-serif; display: flex; justify-content: center; background: #eee; margin: 0; padding: 16px; padding-bottom: 150px; }
+    .container { background: white; padding: 20px; border-radius: 8px; width: min(1020px, 100%); margin-top: 16px; text-align: center; }
+    #app { font-size: 130%; }
+    .hidden { display: none; }
+    .home-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .home-header h1 { margin: 0; text-align: left; font-size: 4em; line-height: 1; }
+    .top-actions { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; margin-bottom: 0; }
+    .form-card { padding: 10px; }
+    input { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+    button { padding: 10px; cursor: pointer; background: #4285f4; color: white; border: none; border-radius: 4px; width: 100%; }
+    button.secondary { background: #666; margin-top: 5px; }
+    .top-actions button { width: auto; min-width: 170px; }
+    .hint { font-size: 11px; margin: 0; color: #555; }
+    .products-status { min-height: 20px; margin-bottom: 10px; color: #444; }
+    .error-text { color: #b00020; }
+    .setup-note { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #fff3cd; color: #7c5a00; text-align: left; }
+    .push-toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); background: #0f5132; color: white; padding: 10px 14px; border-radius: 8px; box-shadow: 0 8px 18px rgba(15, 81, 50, 0.25); z-index: 1200; font-weight: 600; text-align: center; max-width: calc(100% - 24px); }
+    .push-error { background: #b00020; box-shadow: 0 8px 18px rgba(176, 0, 32, 0.25); }
+    .section-block { margin-top: 22px; text-align: left; }
+    .section-block h2 { margin: 0 0 12px; font-size: 20px; color: #1f2937; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+    .cart-dock { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(860px, calc(100% - 24px)); background: #f8fafc; border: 1px solid #dbe4ee; border-radius: 10px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14); z-index: 1000; padding: 10px 12px; }
+    .cart-dock-bar { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: nowrap; text-align: center; }
+    .cart-toggle-button { width: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 1em; font-weight: 600; }
+    .cart-dock-total { font-weight: 600; color: #111827; }
+    .cart-details { margin-top: 10px; padding-top: 10px; border-top: 1px solid #dbe4ee; text-align: center; width: 100%; }
+    .cart-badge { min-width: 34px; padding: 4px 10px; border-radius: 999px; background: #1d4ed8; color: white; text-align: center; font-weight: 700; font-size: 1em; line-height: 1; }
+    .cart-items { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow: auto; align-items: center; }
+    .empty-cart { color: #6b7280; }
+    .cart-item-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; width: min(760px, 100%); }
+    .cart-item-details { display: flex; flex-direction: column; gap: 4px; }
+    .cart-item-value { font-weight: 700; color: #0f5132; white-space: nowrap; }
+    .cart-summary-footer { margin-top: 12px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .cart-clear-button { width: auto; margin-top: 0; }
+    .cart-checkout-button { width: auto; margin-top: 0; background: #0f5132; }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+    .product-card { border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; padding: 10px; text-decoration: none; color: inherit; display: flex; gap: 10px; align-items: center; min-height: 90px; }
+    .product-image-wrap { width: 156px; height: 156px; border: 1px solid #f1f3f5; border-radius: 6px; background: #fafafa; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .product-image { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+    .product-no-image { font-size: 11px; color: #6b7280; text-align: center; padding: 4px; }
+    .product-info { flex: 1; min-width: 0; }
+    .product-name { font-weight: 600; line-height: 1.3; margin-bottom: 6px; color: #111827; }
+    .product-price { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .product-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; min-width: 0; margin-top: 8px; }
+    .product-action-button { width: auto; margin: 0; }
+    .product-external-link { color: #1d4ed8; text-decoration: none; font-size: 12px; word-break: break-all; }
+    .product-external-link:hover { text-decoration: underline; }
+    .normal-price { color: #0f5132; font-weight: 600; }
+    .old-price { color: #6b7280; text-decoration: line-through; }
+    .promo-price { color: #b42318; font-weight: 700; }
+    .result-card { background: #e8f5e9; padding: 15px; border-radius: 4px; margin-top: 15px; text-align: left; }
+    .result-card h3 { margin-top: 0; color: #2e7d32; }
+    .result-card p { margin: 8px 0; padding: 5px 0; border-bottom: 1px solid #c8e6c9; }
+    .result-card p:last-child { border-bottom: none; }
+    #balanceMsg, #statusMsg, #checkoutMsg, #nfcScreenStatus { margin-top: 10px; min-height: 20px; }
+    .checkout-card, .nfc-card { max-width: 760px; margin: 0 auto; text-align: left; }
+    .checkout-items { margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; background: #fafafa; }
+    .checkout-item-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 4px; border-bottom: 1px solid #eceff3; }
+    .checkout-item-row:last-child { border-bottom: none; }
+    .checkout-item-name { color: #1f2937; }
+    .checkout-item-right { display: inline-flex; align-items: center; gap: 10px; }
+    .checkout-item-qty { color: #1f2937; background: #eef2ff; border: 1px solid #dbe4ee; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+    .checkout-item-value { font-weight: 700; color: #0f5132; white-space: nowrap; }
+    .checkout-summary { margin-top: 12px; padding: 10px; border: 1px solid #dbe4ee; border-radius: 8px; background: #f8fafc; }
+    .checkout-summary p { margin: 6px 0; }
+    .checkout-empty { color: #6b7280; text-align: center; padding: 10px 0; }
+    .nfc-log { margin-top: 12px; padding: 15px; border: 1px solid #ccc; background: #fff; border-radius: 8px; text-align: left; min-height: 150px; white-space: pre-wrap; word-wrap: break-word; }
+    @media (max-width: 640px) {
+      .container { padding: 14px; }
+      body { padding-bottom: 190px; }
+      .home-header { flex-direction: column; align-items: stretch; }
+      .home-header h1 { text-align: center; }
+      .push-toast { bottom: 120px; }
+      .cart-dock { width: calc(100% - 16px); bottom: 8px; padding: 10px; }
+      .cart-toggle-button { width: 100%; justify-content: center; }
+      .cart-dock-bar { align-items: stretch; }
+      .products-grid { grid-template-columns: 1fr; }
+      .product-card { align-items: flex-start; }
+      .product-image-wrap { width: 125px; height: 125px; }
+      .product-actions { min-width: 0; width: 100%; }
+      .product-action-button { width: 100%; }
+      .cart-item-row { flex-direction: column; align-items: flex-start; }
+      .cart-summary-footer { flex-direction: column; align-items: flex-start; }
+      .cart-clear-button, .cart-checkout-button, .top-actions button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <div id="home-view">
+      <div class="home-header">
+        <h1>SKLEPIK</h1>
+        <div class="top-actions">
+          <button type="button" onclick="loadView('create-account-view')">Załóż konto</button>
+          <button type="button" onclick="loadView('check-balance-view')">Sprawdź saldo</button>
+          <button id="nfcButton" type="button" class="hidden" onclick="loadView('nfc-view')">NFC</button>
+        </div>
+      </div>
+
+      <div id="backendSetupNote" class="setup-note hidden">
+        Uzupełnij plik <strong>app-config.js</strong> adresem wdrożonego Apps Script Web App i hostuj frontend przez HTTPS.
+      </div>
+
+      <div id="productsStatus" class="products-status">Ładowanie produktów...</div>
+      <div id="nfcTopLevelHelp" class="products-status hidden error-text">
+        NFC działa tylko w pełnym oknie Chrome. <a id="openNfcTopLevelLink" href="#" target="_blank" rel="noopener noreferrer">Otwórz pełną wersję NFC</a>
+      </div>
+      <div id="nfcLog" class="products-status" style="white-space: pre-wrap; text-align: left;"></div>
+
+      <div id="promotionsSection" class="hidden section-block">
+        <h2>Promocje</h2>
+        <div id="promotionsGrid" class="products-grid"></div>
+      </div>
+
+      <div id="productsByType"></div>
+
+      <div id="cartDock" class="cart-dock">
+        <div class="cart-dock-bar">
+          <button type="button" class="cart-toggle-button" onclick="toggleCartDetails()">
+            <span id="cartToggleText">Koszyk</span>
+            <span class="cart-badge" id="cartCountBadge">0</span>
+          </button>
+          <span class="cart-dock-total">Razem: <strong id="cartTotal">0.00 zł</strong></span>
+        </div>
+
+        <div id="cartDetails" class="cart-details hidden">
+          <div id="cartFeedback" class="products-status"></div>
+          <div id="cartItems" class="cart-items empty-cart">Koszyk jest pusty.</div>
+          <div class="cart-summary-footer">
+            <button type="button" class="secondary cart-clear-button" onclick="clearCart()">Wyczyść koszyk</button>
+            <button type="button" class="cart-checkout-button" onclick="startCheckout()">Przejdź do realizacji</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="create-account-view" class="hidden">
+      <div class="form-card">
+        <h2>Rejestracja</h2>
+        <p class="hint">Login (2 litery imienia + 2 nazwiska)</p>
+        <input type="text" id="regLogin" maxlength="4" placeholder="AAAA" oninput="this.value = this.value.toUpperCase()">
+        <p class="hint">PIN (4 cyfry)</p>
+        <input type="text" id="regPin" maxlength="4" placeholder="0000">
+        <p class="hint">Kod rejestracji</p>
+        <input type="text" id="regCode" placeholder="Wpisz kod rejestracji">
+        <button type="button" id="regBtn" onclick="runRegistration()">Zarejestruj się</button>
+        <button type="button" class="secondary" onclick="goHome()">Anuluj</button>
+        <div id="statusMsg"></div>
+      </div>
+    </div>
+
+    <div id="check-balance-view" class="hidden">
+      <div class="form-card">
+        <h2>Sprawdź saldo</h2>
+        <p class="hint">Login (2 litery imienia + 2 nazwiska)</p>
+        <input type="text" id="balanceLogin" maxlength="4" placeholder="AAAA" oninput="this.value = this.value.toUpperCase()">
+        <p class="hint">PIN (4 cyfry)</p>
+        <input type="password" id="balancePin" maxlength="4" placeholder="0000">
+        <button type="button" id="balanceBtn" onclick="runCheckBalance()">Sprawdź saldo</button>
+        <button type="button" class="secondary" onclick="goHome()">Wróć</button>
+        <div id="balanceMsg"></div>
+        <div id="balanceResult" class="hidden result-card">
+          <h3>Saldo</h3>
+          <p><strong>Saldo aktualne:</strong> <span id="resultBalance"></span> zł</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="nfc-view" class="hidden">
+      <div class="form-card nfc-card">
+        <h2>Czytnik NFC</h2>
+        <p>Kliknij przycisk i zbliż tag NFC do telefonu.</p>
+        <button type="button" onclick="startNfcScan()">Rozpocznij skanowanie</button>
+        <button type="button" class="secondary" onclick="goHome()">Wróć</button>
+        <div id="nfcScreenStatus"></div>
+        <div id="nfcScreenLog" class="nfc-log">Status: Gotowy do skanowania.</div>
+      </div>
+    </div>
+
+    <div id="checkout-view" class="hidden">
+      <div class="form-card checkout-card">
+        <h2>Realizacja zakupu</h2>
+        <div id="checkoutItems" class="checkout-items"></div>
+        <div class="checkout-summary">
+          <p><strong>Ilość produktów:</strong> <span id="checkoutTotalQty">0</span></p>
+          <p><strong>Kwota łączna:</strong> <span id="checkoutTotalAmount">0.00 zł</span></p>
+        </div>
+        <p class="hint">LOGIN</p>
+        <input type="text" id="checkoutLogin" placeholder="LOGIN" oninput="this.value = this.value.toUpperCase()">
+        <p class="hint">PIN</p>
+        <input type="password" id="checkoutPin" maxlength="4" placeholder="PIN">
+        <button type="button" id="checkoutSubmitBtn" onclick="runCheckoutPurchase()">Zrealizuj zakup</button>
+        <button type="button" class="secondary" onclick="goHome()">Wróć</button>
+        <div id="checkoutMsg" class="products-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pushToast" class="push-toast hidden" aria-live="polite"></div>
+
+  <script src="./app-config.js"></script>
+  <script>
+    const appConfig = window.APP_CONFIG || {};
+
+    let initialProductId = new URL(window.location.href).searchParams.get('productId') || '';
+    const CART_STORAGE_KEY = 'shop-cart-v1';
+    const MAX_PRODUCT_IMAGE_SIZE_PX = 156;
+    const cart = [];
+    let productsById = {};
+    let productLinkHandledInPage = false;
+    let isCartExpanded = false;
+    let pushToastTimer = null;
+    let nfcReader = null;
+    let nfcScanStarted = false;
+    let nfcScanAbortController = null;
+
+    function hasBackendConfig() {
+      return typeof appConfig.backendUrl === 'string' && appConfig.backendUrl.trim() !== '' && appConfig.backendUrl.indexOf('UZUPELNIJ_') !== 0;
+    }
+
+    async function apiRequest(action, payload, method) {
+      if (!hasBackendConfig()) {
+        throw new Error('Uzupełnij app-config.js adresem Apps Script Web App.');
+      }
+
+      const endpoint = appConfig.backendUrl.trim();
+      const httpMethod = method || 'POST';
+
+      if (httpMethod === 'GET') {
+        const url = new URL(endpoint);
+        url.searchParams.set('action', action);
+        Object.keys(payload || {}).forEach(function(key) {
+          if (payload[key] !== undefined && payload[key] !== null && payload[key] !== '') {
+            url.searchParams.set(key, payload[key]);
+          }
+        });
+
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          redirect: 'follow'
+        });
+        return response.json();
+      }
+
+      const body = new URLSearchParams();
+      body.set('action', action);
+      Object.keys(payload || {}).forEach(function(key) {
+        if (payload[key] !== undefined && payload[key] !== null) {
+          body.set(key, payload[key]);
+        }
+      });
+
+      const response = await fetch(endpoint, {
+        method: httpMethod,
+        body: body,
+        redirect: 'follow'
+      });
+
+      return response.json();
+    }
+
+    function setScreenMessage(elementId, message, isError) {
+      const element = document.getElementById(elementId);
+      if (!element) {
+        return;
+      }
+
+      element.innerText = message || '';
+      element.classList.toggle('error-text', !!isError);
+    }
+
+    function loadView(viewId) {
+      document.getElementById('home-view').classList.add('hidden');
+      document.getElementById('create-account-view').classList.add('hidden');
+      document.getElementById('check-balance-view').classList.add('hidden');
+      document.getElementById('nfc-view').classList.add('hidden');
+      document.getElementById('checkout-view').classList.add('hidden');
+      document.getElementById(viewId).classList.remove('hidden');
+    }
+
+    function goHome() {
+      document.getElementById('create-account-view').classList.add('hidden');
+      document.getElementById('check-balance-view').classList.add('hidden');
+      document.getElementById('nfc-view').classList.add('hidden');
+      document.getElementById('checkout-view').classList.add('hidden');
+      document.getElementById('home-view').classList.remove('hidden');
+      isCartExpanded = false;
+      document.getElementById('cartDetails').classList.add('hidden');
+      document.getElementById('cartToggleText').innerText = 'Koszyk';
+    }
+
+    function formatPrice(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) {
+        return '-';
+      }
+      return Number(value).toFixed(2) + ' zł';
+    }
+
+    function getEffectivePrice(product) {
+      if (product.hasPromotion && product.promoPrice !== null && product.promoPrice !== undefined) {
+        return Number(product.promoPrice);
+      }
+      return Number(product.price || 0);
+    }
+
+    function showCartFeedback(message, isError) {
+      const feedback = document.getElementById('cartFeedback');
+      feedback.innerText = message || '';
+      feedback.classList.toggle('error-text', !!isError);
+    }
+
+    function showPush(message, isError, durationMs) {
+      const push = document.getElementById('pushToast');
+      push.innerText = message || '';
+      push.classList.remove('hidden', 'push-error');
+
+      if (isError) {
+        push.classList.add('push-error');
+      }
+
+      if (pushToastTimer) {
+        clearTimeout(pushToastTimer);
+      }
+
+      pushToastTimer = setTimeout(function() {
+        push.classList.add('hidden');
+        push.classList.remove('push-error');
+      }, durationMs || 1200);
+    }
+
+    function isMobileChromeBrowser() {
+      const ua = navigator.userAgent || '';
+      const isAndroid = /Android/i.test(ua);
+      const isMobile = /Mobile/i.test(ua);
+      const isChrome = /Chrome\/[\d.]+/i.test(ua);
+      const isOtherChromiumBrand = /EdgA\//i.test(ua) || /OPR\//i.test(ua) || /SamsungBrowser\//i.test(ua);
+
+      return isAndroid && isMobile && isChrome && !isOtherChromiumBrand;
+    }
+
+    function supportsNfcRead() {
+      return typeof window.NDEFReader === 'function' && window.isSecureContext;
+    }
+
+    function isTopLevelBrowsingContext() {
+      try {
+        return window.top === window.self;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function getTopLevelNfcUrl() {
+      return window.location.href;
+    }
+
+    function updateNfcTopLevelHelp() {
+      const help = document.getElementById('nfcTopLevelHelp');
+      const link = document.getElementById('openNfcTopLevelLink');
+      if (!help || !link) {
+        return;
+      }
+
+      link.href = getTopLevelNfcUrl();
+      help.classList.toggle('hidden', isTopLevelBrowsingContext());
+    }
+
+    function updateNfcAvailability() {
+      const nfcButton = document.getElementById('nfcButton');
+      if (!nfcButton) {
+        return;
+      }
+
+      const canShow = isMobileChromeBrowser() && supportsNfcRead();
+      nfcButton.classList.toggle('hidden', !canShow);
+    }
+
+    function resetNfcScanState() {
+      if (nfcScanAbortController) {
+        try {
+          nfcScanAbortController.abort();
+        } catch (error) {
+          // Ignorujemy błąd zatrzymania skanera.
+        }
+      }
+
+      nfcScanAbortController = null;
+      nfcReader = null;
+      nfcScanStarted = false;
+    }
+
+    function appendNfcLog(message, clearFirst) {
+      const homeLog = document.getElementById('nfcLog');
+      const screenLog = document.getElementById('nfcScreenLog');
+
+      [homeLog, screenLog].forEach(function(logBox) {
+        if (!logBox) {
+          return;
+        }
+
+        if (clearFirst) {
+          logBox.innerText = 'Status: Inicjowanie...';
+        }
+
+        logBox.innerText += '\n' + message;
+        logBox.scrollTop = logBox.scrollHeight;
+      });
+    }
+
+    function decodeNfcRecordText(record) {
+      try {
+        if (!record || !record.data) {
+          return '';
+        }
+
+        if (record.recordType === 'text') {
+          const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+          return textDecoder.decode(record.data);
+        }
+
+        if (record.recordType === 'url') {
+          const urlDecoder = new TextDecoder('utf-8');
+          return urlDecoder.decode(record.data);
+        }
+      } catch (error) {
+        return '';
+      }
+
+      return '';
+    }
+
+    async function startNfcScan() {
+      setScreenMessage('nfcScreenStatus', '', false);
+
+      if (!isMobileChromeBrowser() || !supportsNfcRead()) {
+        appendNfcLog('Błąd: Użyj Chrome na Androidzie i połączenia HTTPS.', true);
+        setScreenMessage('nfcScreenStatus', 'Web NFC nie jest dostępne w tym środowisku.', true);
+        showPush('Web NFC nie jest dostępne w tym środowisku.', true, 3500);
+        return;
+      }
+
+      if (!isTopLevelBrowsingContext()) {
+        updateNfcTopLevelHelp();
+        appendNfcLog('Błąd: Web NFC can only be accessed in a top-level browsing context.', true);
+        setScreenMessage('nfcScreenStatus', 'Otwórz pełną wersję strony w nowej karcie Chrome.', true);
+        showPush('Otwórz pełną wersję strony w nowej karcie Chrome.', true, 3800);
+        return;
+      }
+
+      if (nfcScanStarted) {
+        resetNfcScanState();
+      }
+
+      appendNfcLog('Start skanowania NFC...', true);
+
+      try {
+        nfcReader = new NDEFReader();
+        nfcScanAbortController = new AbortController();
+        await nfcReader.scan({ signal: nfcScanAbortController.signal });
+        nfcScanStarted = true;
+        appendNfcLog('Zezwolono na dostęp. Zbliż tag NFC do telefonu...');
+        setScreenMessage('nfcScreenStatus', 'Skaner NFC aktywny. Zbliż tag.', false);
+        showPush('Skaner NFC aktywny. Zbliż tag.', false, 2600);
+
+        nfcReader.addEventListener('readingerror', function() {
+          appendNfcLog('Wystąpił błąd podczas odczytu tagu. Spróbuj ponownie.');
+        });
+
+        nfcReader.addEventListener('reading', function(event) {
+          appendNfcLog('');
+          appendNfcLog('--- Znaleziono nowy tag ---');
+          appendNfcLog('Numer seryjny: ' + (event.serialNumber || '-'));
+
+          const message = event.message;
+          const records = message && message.records ? message.records : [];
+          appendNfcLog('Ilość rekordów: ' + records.length);
+
+          for (const record of records) {
+            appendNfcLog('Typ rekordu: ' + record.recordType);
+            const decoded = decodeNfcRecordText(record);
+            if (decoded) {
+              appendNfcLog('Treść: ' + decoded);
+            }
+          }
+        });
+      } catch (error) {
+        const errorName = error && error.name ? error.name : '';
+        const errorMessage = error && error.message ? error.message : 'Nieznany błąd';
+
+        if (errorName === 'NotAllowedError') {
+          appendNfcLog('Brak zgody na NFC. Udziel uprawnienia i spróbuj ponownie.');
+          setScreenMessage('nfcScreenStatus', 'Nie udzielono zgody na NFC.', true);
+          showPush('Nie udzielono zgody na NFC.', true, 3600);
+          return;
+        }
+
+        if (errorName === 'NotSupportedError') {
+          appendNfcLog('To urządzenie nie obsługuje Web NFC w tej przeglądarce.');
+          setScreenMessage('nfcScreenStatus', 'Brak obsługi Web NFC.', true);
+          showPush('Brak obsługi Web NFC.', true, 3600);
+          return;
+        }
+
+        appendNfcLog('Błąd: ' + errorMessage);
+        setScreenMessage('nfcScreenStatus', 'Błąd NFC: ' + errorMessage, true);
+        showPush('Błąd NFC: ' + errorMessage, true, 4200);
+      }
+    }
+
+    function saveCart() {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    }
+
+    function loadCart() {
+      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          cart.splice(0, cart.length, ...parsed.filter(function(item) {
+            return item && item.productId;
+          }));
+        }
+      } catch (error) {
+        localStorage.removeItem(CART_STORAGE_KEY);
+      }
+    }
+
+    function renderCart() {
+      const cartItems = document.getElementById('cartItems');
+      const cartTotal = document.getElementById('cartTotal');
+      const cartCountBadge = document.getElementById('cartCountBadge');
+
+      cartItems.innerHTML = '';
+
+      let totalQuantity = 0;
+      let totalValue = 0;
+
+      cart.forEach(function(item) {
+        const product = productsById[item.productId];
+        if (!product) {
+          return;
+        }
+
+        const quantity = Number(item.quantity || 0);
+        const lineValue = getEffectivePrice(product) * quantity;
+        totalQuantity += quantity;
+        totalValue += lineValue;
+
+        const row = document.createElement('div');
+        row.className = 'cart-item-row';
+
+        const details = document.createElement('div');
+        details.className = 'cart-item-details';
+
+        const detailsName = document.createElement('strong');
+        detailsName.innerText = product.name;
+
+        const detailsQuantity = document.createElement('span');
+        detailsQuantity.innerText = 'Ilość: ' + quantity;
+
+        details.appendChild(detailsName);
+        details.appendChild(detailsQuantity);
+
+        const value = document.createElement('div');
+        value.className = 'cart-item-value';
+        value.innerText = formatPrice(lineValue);
+
+        row.appendChild(details);
+        row.appendChild(value);
+        cartItems.appendChild(row);
+      });
+
+      if (!cartItems.children.length) {
+        cartItems.innerText = 'Koszyk jest pusty.';
+        cartItems.classList.add('empty-cart');
+      } else {
+        cartItems.classList.remove('empty-cart');
+      }
+
+      cartCountBadge.innerText = String(totalQuantity);
+      cartTotal.innerText = formatPrice(totalValue);
+    }
+
+    function toggleCartDetails() {
+      isCartExpanded = !isCartExpanded;
+      const details = document.getElementById('cartDetails');
+      const toggleText = document.getElementById('cartToggleText');
+
+      details.classList.toggle('hidden', !isCartExpanded);
+      toggleText.innerText = isCartExpanded ? 'Ukryj koszyk' : 'Koszyk';
+    }
+
+    function startCheckout() {
+      renderCheckoutView();
+      loadView('checkout-view');
+    }
+
+    function getCheckoutSnapshot() {
+      const items = [];
+      let totalQty = 0;
+      let totalAmount = 0;
+
+      cart.forEach(function(item) {
+        const product = productsById[item.productId];
+        if (!product) {
+          return;
+        }
+
+        const quantity = Number(item.quantity || 0);
+        const lineTotal = getEffectivePrice(product) * quantity;
+        totalQty += quantity;
+        totalAmount += lineTotal;
+
+        items.push({
+          id: item.productId,
+          name: product.name,
+          quantity: quantity,
+          lineTotal: lineTotal
+        });
+      });
+
+      return {
+        items: items,
+        totalQty: totalQty,
+        totalAmount: Number(totalAmount.toFixed(2))
+      };
+    }
+
+    function renderCheckoutView() {
+      const list = document.getElementById('checkoutItems');
+      const qtyEl = document.getElementById('checkoutTotalQty');
+      const amountEl = document.getElementById('checkoutTotalAmount');
+      const msg = document.getElementById('checkoutMsg');
+      const snapshot = getCheckoutSnapshot();
+
+      list.innerHTML = '';
+      msg.innerText = '';
+      msg.classList.remove('error-text');
+
+      if (!snapshot.items.length) {
+        list.innerHTML = '<div class="checkout-empty">Koszyk jest pusty.</div>';
+      } else {
+        snapshot.items.forEach(function(item) {
+          const row = document.createElement('div');
+          row.className = 'checkout-item-row';
+
+          const left = document.createElement('div');
+          left.className = 'checkout-item-name';
+          left.innerText = item.name;
+
+          const rightWrap = document.createElement('div');
+          rightWrap.className = 'checkout-item-right';
+
+          const qty = document.createElement('span');
+          qty.className = 'checkout-item-qty';
+          qty.innerText = item.quantity + ' szt.';
+
+          const right = document.createElement('div');
+          right.className = 'checkout-item-value';
+          right.innerText = formatPrice(item.lineTotal);
+
+          rightWrap.appendChild(qty);
+          rightWrap.appendChild(right);
+
+          row.appendChild(left);
+          row.appendChild(rightWrap);
+          list.appendChild(row);
+        });
+      }
+
+      qtyEl.innerText = String(snapshot.totalQty);
+      amountEl.innerText = formatPrice(snapshot.totalAmount);
+    }
+
+    async function runCheckoutPurchase() {
+      const msg = document.getElementById('checkoutMsg');
+      const login = (document.getElementById('checkoutLogin').value || '').trim().toUpperCase();
+      const pin = (document.getElementById('checkoutPin').value || '').trim();
+      const snapshot = getCheckoutSnapshot();
+
+      if (!snapshot.items.length) {
+        msg.innerText = 'Koszyk jest pusty.';
+        msg.classList.add('error-text');
+        return;
+      }
+
+      if (!/^[A-Z]{4}$/.test(login) || !/^\d{4}$/.test(pin)) {
+        msg.innerText = '';
+        msg.classList.remove('error-text');
+        showPush('Nieprawidłowe dane logowania', true, 3000);
+        return;
+      }
+
+      msg.innerText = 'Trwa realizacja zakupu...';
+      msg.classList.remove('error-text');
+
+      try {
+        const res = await apiRequest('finalizePurchase', {
+          login: login,
+          pin: pin,
+          purchaseItems: JSON.stringify(snapshot.items),
+          totalAmount: String(snapshot.totalAmount)
+        }, 'POST');
+        if (!res || !res.success) {
+          const errorMessage = res && res.message ? res.message : 'Nie udało się zrealizować zakupu.';
+          if (errorMessage === 'Nieprawidłowe dane logowania') {
+            msg.innerText = '';
+            msg.classList.remove('error-text');
+            showPush(errorMessage, true, 5000);
+          } else {
+            msg.innerText = errorMessage;
+            msg.classList.add('error-text');
+          }
+          return;
+        }
+
+        cart.splice(0, cart.length);
+        saveCart();
+        renderCart();
+        renderCheckoutView();
+        document.getElementById('checkoutLogin').value = '';
+        document.getElementById('checkoutPin').value = '';
+        msg.innerText = 'Zakup zrealizowany poprawnie.';
+        msg.classList.remove('error-text');
+        showPush('Zakup zrealizowany poprawnie', false);
+        goHome();
+      } catch (error) {
+        msg.innerText = error && error.message ? error.message : 'Błąd połączenia z Apps Script.';
+        msg.classList.add('error-text');
+      }
+    }
+
+    function addToCart(productId, options) {
+      const product = productsById[productId];
+      if (!product) {
+        showCartFeedback('Nie znaleziono produktu o ID ' + productId + '.', true);
+        return false;
+      }
+
+      const existing = cart.find(function(item) {
+        return item.productId === productId;
+      });
+
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        cart.push({ productId: productId, quantity: 1 });
+      }
+
+      saveCart();
+      renderCart();
+
+      if (!options || options.showMessage !== false) {
+        showCartFeedback('Dodano do koszyka: ' + product.name, false);
+        showPush('Dodano do koszyka: ' + product.name, false);
+      }
+
+      return true;
+    }
+
+    function clearCart() {
+      cart.splice(0, cart.length);
+      saveCart();
+      renderCart();
+      showCartFeedback('Koszyk został wyczyszczony.', false);
+    }
+
+    function handleProductLinkAutoAdd() {
+      if (productLinkHandledInPage) {
+        return;
+      }
+
+      const url = new URL(window.location.href);
+      const urlProductId = url.searchParams.get('productId');
+      const productId = urlProductId || initialProductId;
+      if (!productId) {
+        return;
+      }
+
+      const sessionKey = 'auto-added-product-id:' + productId;
+      if (!urlProductId && sessionStorage.getItem(sessionKey) === '1') {
+        productLinkHandledInPage = true;
+        return;
+      }
+
+      const added = addToCart(productId, { showMessage: false });
+      if (added) {
+        const product = productsById[productId];
+        showCartFeedback('Produkt został automatycznie dodany z linku: ' + product.name + '.', false);
+        sessionStorage.setItem(sessionKey, '1');
+      }
+
+      initialProductId = '';
+      productLinkHandledInPage = true;
+
+      if (urlProductId) {
+        url.searchParams.delete('productId');
+        const cleanPath = url.pathname + (url.search ? url.search : '') + url.hash;
+        window.history.replaceState({}, document.title, cleanPath);
+      }
+    }
+
+    function createProductCard(product) {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+
+      const imageWrapper = document.createElement('div');
+      imageWrapper.className = 'product-image-wrap';
+      imageWrapper.style.maxWidth = MAX_PRODUCT_IMAGE_SIZE_PX + 'px';
+      imageWrapper.style.maxHeight = MAX_PRODUCT_IMAGE_SIZE_PX + 'px';
+
+      if (product.image) {
+        const image = document.createElement('img');
+        image.className = 'product-image';
+        image.src = product.image;
+        image.alt = product.name;
+        image.loading = 'lazy';
+        imageWrapper.appendChild(image);
+      } else {
+        const noImage = document.createElement('div');
+        noImage.className = 'product-no-image';
+        noImage.innerText = 'Brak grafiki';
+        imageWrapper.appendChild(noImage);
+      }
+
+      const info = document.createElement('div');
+      info.className = 'product-info';
+
+      const name = document.createElement('div');
+      name.className = 'product-name';
+      name.innerText = product.name;
+
+      const price = document.createElement('div');
+      price.className = 'product-price';
+
+      if (product.hasPromotion) {
+        const oldPrice = document.createElement('span');
+        oldPrice.className = 'old-price';
+        oldPrice.innerText = formatPrice(product.price);
+
+        const promoPrice = document.createElement('span');
+        promoPrice.className = 'promo-price';
+        promoPrice.innerText = formatPrice(product.promoPrice);
+
+        price.appendChild(oldPrice);
+        price.appendChild(promoPrice);
+      } else {
+        const normalPrice = document.createElement('span');
+        normalPrice.className = 'normal-price';
+        normalPrice.innerText = formatPrice(product.price);
+        price.appendChild(normalPrice);
+      }
+
+      info.appendChild(name);
+      info.appendChild(price);
+
+      const actions = document.createElement('div');
+      actions.className = 'product-actions';
+
+      const addButton = document.createElement('button');
+      addButton.type = 'button';
+      addButton.className = 'product-action-button';
+      addButton.innerText = 'Dodaj do koszyka';
+      addButton.addEventListener('click', function() {
+        addToCart(product.id);
+      });
+
+      if (product.url) {
+        const externalLink = document.createElement('a');
+        externalLink.className = 'product-external-link';
+        externalLink.href = product.url;
+        externalLink.target = '_blank';
+        externalLink.rel = 'noopener noreferrer';
+        externalLink.innerText = 'Strona produktu';
+        actions.appendChild(externalLink);
+      }
+
+      actions.appendChild(addButton);
+      card.appendChild(imageWrapper);
+      card.appendChild(info);
+      info.appendChild(actions);
+
+      return card;
+    }
+
+    function renderProducts(data) {
+      const status = document.getElementById('productsStatus');
+      const promotionsSection = document.getElementById('promotionsSection');
+      const promotionsGrid = document.getElementById('promotionsGrid');
+      const productsByType = document.getElementById('productsByType');
+
+      promotionsGrid.innerHTML = '';
+      productsByType.innerHTML = '';
+
+      if (!data.success) {
+        status.innerText = data.message || 'Nie udało się pobrać produktów.';
+        status.classList.add('error-text');
+        promotionsSection.classList.add('hidden');
+        renderCart();
+        return;
+      }
+
+      productsById = {};
+      (data.products || []).forEach(function(product) {
+        productsById[product.id] = product;
+      });
+
+      status.innerText = '';
+      status.classList.remove('error-text');
+
+      if (data.promotions && data.promotions.length > 0) {
+        data.promotions.forEach(function(product) {
+          promotionsGrid.appendChild(createProductCard(product));
+        });
+        promotionsSection.classList.remove('hidden');
+      } else {
+        promotionsSection.classList.add('hidden');
+      }
+
+      const types = Object.keys(data.grouped || {});
+      if (types.length === 0) {
+        status.innerText = 'Brak produktów do wyświetlenia.';
+        renderCart();
+        return;
+      }
+
+      types.forEach(function(type) {
+        const section = document.createElement('section');
+        section.className = 'section-block';
+
+        const title = document.createElement('h2');
+        title.innerText = type;
+
+        const grid = document.createElement('div');
+        grid.className = 'products-grid';
+
+        data.grouped[type].forEach(function(product) {
+          grid.appendChild(createProductCard(product));
+        });
+
+        section.appendChild(title);
+        section.appendChild(grid);
+        productsByType.appendChild(section);
+      });
+
+      renderCart();
+      handleProductLinkAutoAdd();
+    }
+
+    async function loadProducts() {
+      const status = document.getElementById('productsStatus');
+      if (!hasBackendConfig()) {
+        document.getElementById('backendSetupNote').classList.remove('hidden');
+        status.innerText = 'Uzupełnij konfigurację backendu Apps Script, aby załadować produkty.';
+        status.classList.add('error-text');
+        return;
+      }
+
+      try {
+        renderProducts(await apiRequest('getProductsData', {}, 'GET'));
+      } catch (error) {
+        status.innerText = (error && error.message) ? error.message : 'Błąd pobierania produktów z Apps Script.';
+        status.classList.add('error-text');
+      }
+    }
+
+    async function runRegistration() {
+      const login = document.getElementById('regLogin').value;
+      const pin = document.getElementById('regPin').value;
+      const registrationCode = (document.getElementById('regCode').value || '').trim();
+      const msg = document.getElementById('statusMsg');
+
+      if (!/^[A-Z]{4}$/.test(login) || !/^\d{4}$/.test(pin)) {
+        msg.innerText = 'Błędny format danych!';
+        msg.classList.add('error-text');
+        return;
+      }
+
+      msg.innerText = 'Łączenie z bazą...';
+      msg.classList.remove('error-text');
+
+      try {
+        const res = await apiRequest('createAccount', {
+          login: login,
+          pin: pin,
+          registrationCode: registrationCode
+        }, 'POST');
+        msg.innerText = res.message;
+        msg.classList.toggle('error-text', !res.success);
+        if (res.success) {
+          setTimeout(goHome, 1500);
+        }
+      } catch (error) {
+        msg.innerText = error && error.message ? error.message : 'Błąd połączenia z Apps Script.';
+        msg.classList.add('error-text');
+      }
+    }
+
+    async function runCheckBalance() {
+      const login = document.getElementById('balanceLogin').value;
+      const pin = document.getElementById('balancePin').value;
+      const msg = document.getElementById('balanceMsg');
+      const resultDiv = document.getElementById('balanceResult');
+
+      resultDiv.classList.add('hidden');
+      msg.innerText = '';
+      msg.classList.remove('error-text');
+
+      if (!/^[A-Z]{4}$/.test(login)) {
+        msg.innerText = 'Błędny format loginu!';
+        msg.classList.add('error-text');
+        return;
+      }
+
+      if (!/^\d{4}$/.test(pin)) {
+        msg.innerText = 'PIN musi zawierać 4 cyfry!';
+        msg.classList.add('error-text');
+        return;
+      }
+
+      msg.innerText = 'Sprawdzanie danych...';
+
+      try {
+        const res = await apiRequest('checkBalance', {
+          login: login,
+          pin: pin
+        }, 'POST');
+        if (res.success) {
+          document.getElementById('resultBalance').innerText = (res.currentBalance || 0).toFixed(2);
+          resultDiv.classList.remove('hidden');
+          msg.innerText = '';
+        } else {
+          msg.innerText = res.message;
+          msg.classList.add('error-text');
+        }
+      } catch (error) {
+        msg.innerText = error && error.message ? error.message : 'Błąd połączenia z Apps Script.';
+        msg.classList.add('error-text');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateNfcAvailability();
+      updateNfcTopLevelHelp();
+      loadCart();
+      renderCart();
+      loadProducts();
+
+      document.getElementById('balancePin').addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+          runCheckBalance();
+        }
+      });
+
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+          resetNfcScanState();
+        }
+      });
+
+      window.addEventListener('pagehide', function() {
+        resetNfcScanState();
+      });
+    });
+
+    window.loadView = loadView;
+    window.goHome = goHome;
+    window.toggleCartDetails = toggleCartDetails;
+    window.clearCart = clearCart;
+    window.startCheckout = startCheckout;
+    window.runCheckoutPurchase = runCheckoutPurchase;
+    window.runRegistration = runRegistration;
+    window.runCheckBalance = runCheckBalance;
+    window.startNfcScan = startNfcScan;
+  </script>
+</body>
+</html>
