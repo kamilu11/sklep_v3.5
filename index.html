@@ -70,7 +70,6 @@
     .checkout-summary { margin-top: 12px; padding: 10px; border: 1px solid #dbe4ee; border-radius: 8px; background: #f8fafc; }
     .checkout-summary p { margin: 6px 0; }
     .checkout-empty { color: #6b7280; text-align: center; padding: 10px 0; }
-    .nfc-log { margin-top: 12px; padding: 15px; border: 1px solid #ccc; background: #fff; border-radius: 8px; text-align: left; min-height: 150px; white-space: pre-wrap; word-wrap: break-word; }
     @media (max-width: 640px) {
       .container { padding: 14px; }
       body { padding-bottom: 190px; }
@@ -111,7 +110,6 @@
       <div id="nfcTopLevelHelp" class="products-status hidden error-text">
         NFC działa tylko w pełnym oknie Chrome. <a id="openNfcTopLevelLink" href="#" target="_blank" rel="noopener noreferrer">Otwórz pełną wersję NFC</a>
       </div>
-      <div id="nfcLog" class="products-status" style="white-space: pre-wrap; text-align: left;"></div>
 
       <div id="promotionsSection" class="hidden section-block">
         <h2>Promocje</h2>
@@ -179,8 +177,6 @@
         <p>Kliknij przycisk i zbliż tag NFC do telefonu.</p>
         <button type="button" onclick="startNfcScan()">Rozpocznij skanowanie</button>
         <button type="button" class="secondary" onclick="goHome()">Wróć</button>
-        <div id="nfcScreenStatus"></div>
-        <div id="nfcScreenLog" class="nfc-log">Status: Gotowy do skanowania.</div>
       </div>
     </div>
 
@@ -272,16 +268,6 @@
       });
 
       return response.json();
-    }
-
-    function setScreenMessage(elementId, message, isError) {
-      const element = document.getElementById(elementId);
-      if (!element) {
-        return;
-      }
-
-      element.innerText = message || '';
-      element.classList.toggle('error-text', !!isError);
     }
 
     function loadView(viewId) {
@@ -404,24 +390,6 @@
       nfcScanStarted = false;
     }
 
-    function appendNfcLog(message, clearFirst) {
-      const homeLog = document.getElementById('nfcLog');
-      const screenLog = document.getElementById('nfcScreenLog');
-
-      [homeLog, screenLog].forEach(function(logBox) {
-        if (!logBox) {
-          return;
-        }
-
-        if (clearFirst) {
-          logBox.innerText = 'Status: Inicjowanie...';
-        }
-
-        logBox.innerText += '\n' + message;
-        logBox.scrollTop = logBox.scrollHeight;
-      });
-    }
-
     function decodeNfcRecordText(record) {
       try {
         if (!record || !record.data) {
@@ -469,19 +437,13 @@
     }
 
     async function startNfcScan() {
-      setScreenMessage('nfcScreenStatus', '', false);
-
       if (!isMobileChromeBrowser() || !supportsNfcRead()) {
-        appendNfcLog('Błąd: Użyj Chrome na Androidzie i połączenia HTTPS.', true);
-        setScreenMessage('nfcScreenStatus', 'Web NFC nie jest dostępne w tym środowisku.', true);
         showPush('Web NFC nie jest dostępne w tym środowisku.', true, 3500);
         return;
       }
 
       if (!isTopLevelBrowsingContext()) {
         updateNfcTopLevelHelp();
-        appendNfcLog('Błąd: Web NFC can only be accessed in a top-level browsing context.', true);
-        setScreenMessage('nfcScreenStatus', 'Otwórz pełną wersję strony w nowej karcie Chrome.', true);
         showPush('Otwórz pełną wersję strony w nowej karcie Chrome.', true, 3800);
         return;
       }
@@ -490,45 +452,31 @@
         resetNfcScanState();
       }
 
-      appendNfcLog('Start skanowania NFC...', true);
-
       try {
         nfcReader = new NDEFReader();
         nfcScanAbortController = new AbortController();
         await nfcReader.scan({ signal: nfcScanAbortController.signal });
         nfcScanStarted = true;
-        appendNfcLog('Zezwolono na dostęp. Zbliż tag NFC do telefonu...');
-        setScreenMessage('nfcScreenStatus', 'Skaner NFC aktywny. Zbliż tag.', false);
         showPush('Skaner NFC aktywny. Zbliż tag.', false, 2600);
 
         nfcReader.addEventListener('readingerror', function() {
-          appendNfcLog('Wystąpił błąd podczas odczytu tagu. Spróbuj ponownie.');
+          showPush('Wystąpił błąd podczas odczytu tagu. Spróbuj ponownie.', true, 3000);
         });
 
         nfcReader.addEventListener('reading', function(event) {
-          appendNfcLog('');
-          appendNfcLog('--- Znaleziono nowy tag ---');
-          appendNfcLog('Numer seryjny: ' + (event.serialNumber || '-'));
-
           const message = event.message;
           const records = message && message.records ? message.records : [];
-          appendNfcLog('Ilość rekordów: ' + records.length);
 
           for (const record of records) {
-            appendNfcLog('Typ rekordu: ' + record.recordType);
             const decoded = decodeNfcRecordText(record);
             if (decoded) {
-              appendNfcLog('Treść: ' + decoded);
-
               const productId = getProductIdFromNfcPayload(decoded);
               if (productId) {
                 const added = addToCart(productId);
                 if (added) {
-                  appendNfcLog('Dodano do koszyka produkt ID: ' + productId);
-                  setScreenMessage('nfcScreenStatus', 'Dodano do koszyka: ' + productId, false);
+                  return;
                 } else {
-                  appendNfcLog('Nie udało się dodać produktu ID: ' + productId);
-                  setScreenMessage('nfcScreenStatus', 'Nie znaleziono produktu: ' + productId, true);
+                  showPush('Nie znaleziono produktu: ' + productId, true, 3500);
                 }
               }
             }
@@ -539,21 +487,15 @@
         const errorMessage = error && error.message ? error.message : 'Nieznany błąd';
 
         if (errorName === 'NotAllowedError') {
-          appendNfcLog('Brak zgody na NFC. Udziel uprawnienia i spróbuj ponownie.');
-          setScreenMessage('nfcScreenStatus', 'Nie udzielono zgody na NFC.', true);
           showPush('Nie udzielono zgody na NFC.', true, 3600);
           return;
         }
 
         if (errorName === 'NotSupportedError') {
-          appendNfcLog('To urządzenie nie obsługuje Web NFC w tej przeglądarce.');
-          setScreenMessage('nfcScreenStatus', 'Brak obsługi Web NFC.', true);
           showPush('Brak obsługi Web NFC.', true, 3600);
           return;
         }
 
-        appendNfcLog('Błąd: ' + errorMessage);
-        setScreenMessage('nfcScreenStatus', 'Błąd NFC: ' + errorMessage, true);
         showPush('Błąd NFC: ' + errorMessage, true, 4200);
       }
     }
