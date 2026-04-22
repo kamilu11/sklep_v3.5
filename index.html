@@ -823,6 +823,12 @@
       }
     }
 
+    function isProductActive(product) {
+      if (!product) return false;
+      const active = product.AKTYWNE !== undefined ? product.AKTYWNE : product.active;
+      return active === '1' || active === 1 || active === true;
+    }
+
     function createProductCard(product) {
       const card = document.createElement('div');
       card.className = 'product-card';
@@ -925,17 +931,24 @@
 
       productsById = {};
       (data.products || []).forEach(function(product) {
-        productsById[normalizeProductId(product.id)] = product;
+        if (isProductActive(product)) {
+          productsById[normalizeProductId(product.id)] = product;
+        }
       });
 
       status.innerText = '';
       status.classList.remove('error-text');
 
       if (data.promotions && data.promotions.length > 0) {
-        data.promotions.forEach(function(product) {
-          promotionsGrid.appendChild(createProductCard(product));
-        });
-        promotionsSection.classList.remove('hidden');
+        var activePromotions = data.promotions.filter(isProductActive);
+        if (activePromotions.length > 0) {
+          activePromotions.forEach(function(product) {
+            promotionsGrid.appendChild(createProductCard(product));
+          });
+          promotionsSection.classList.remove('hidden');
+        } else {
+          promotionsSection.classList.add('hidden');
+        }
       } else {
         promotionsSection.classList.add('hidden');
       }
@@ -957,7 +970,7 @@
         const grid = document.createElement('div');
         grid.className = 'products-grid';
 
-        data.grouped[type].forEach(function(product) {
+        (data.grouped[type] || []).filter(isProductActive).forEach(function(product) {
           grid.appendChild(createProductCard(product));
         });
 
