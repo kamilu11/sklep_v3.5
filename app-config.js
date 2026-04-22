@@ -1,3 +1,3 @@
 window.APP_CONFIG = {
-  backendUrl: "https://script.google.com/macros/s/AKfycbx6SDAMXxus4b_cS--K1dyAjcU2tLK46OU168goKUK5iTIfs_5czyyiRPh0E8dkM5dh/exec"
+  backendUrl: "https://script.google.com/macros/s/AKfycbwuZ7kjaheSF1RlFB_TeA07YBCzKjsAhstedRsLXhsG7ENQv1XZkeG88GSnM0murho0/exec"
 };
