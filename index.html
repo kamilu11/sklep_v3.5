@@ -927,6 +927,12 @@
       const promotionsGrid = document.getElementById('promotionsGrid');
       const productsByType = document.getElementById('productsByType');
 
+      // DEBUG: Loguj dane z backendu
+      console.log('Backend response:', data);
+      if (data.products && data.products.length > 0) {
+        console.log('Pierwszy produkt:', data.products[0]);
+      }
+
       promotionsGrid.innerHTML = '';
       productsByType.innerHTML = '';
 
