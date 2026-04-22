@@ -834,7 +834,11 @@
       }
       
       // Sprawdzaj dokładnie: "1", 1, lub true - wszystko inne (w tym "0" i 0) to nieaktywne
-      return active === '1' || active === 1 || active === true;
+      const isActive = active === '1' || active === 1 || active === true;
+      if (!isActive) {
+        console.log('Product hidden: AKTYWNE=' + active + ' (type: ' + typeof active + ')');
+      }
+      return isActive;
     }
 
     function createProductCard(product) {
@@ -925,6 +929,15 @@
       const promotionsSection = document.getElementById('promotionsSection');
       const promotionsGrid = document.getElementById('promotionsGrid');
       const productsByType = document.getElementById('productsByType');
+
+      // DEBUG: Log backend response
+      console.log('Backend products data:', data);
+      if (data.products && data.products.length > 0) {
+        console.log('First product AKTYWNE:', data.products[0].AKTYWNE);
+        data.products.forEach(p => {
+          console.log('Product ' + p.id + ' (' + p.name + '): AKTYWNE = ' + p.AKTYWNE);
+        });
+      }
 
       promotionsGrid.innerHTML = '';
       productsByType.innerHTML = '';
