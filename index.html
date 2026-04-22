@@ -825,18 +825,22 @@
 
     function isProductActive(product) {
       if (!product) return false;
-      
-      const active = product.AKTYWNE !== undefined ? product.AKTYWNE : product.active;
-      
-      // Jeśli pole nie istnieje, domyślnie traktuj jako aktywne (backward compatibility)
-      if (active === undefined) {
-        return true;
+
+      const active = product.AKTYWNE !== undefined
+        ? product.AKTYWNE
+        : (product.aktywne !== undefined ? product.aktywne : product.active);
+
+      // Brak pola oznacza brak potwierdzenia aktywności.
+      if (active === undefined || active === null || String(active).trim() === '') {
+        console.log('Product hidden: missing AKTYWNE for product id=' + product.id);
+        return false;
       }
-      
-      // Sprawdzaj dokładnie: "1", 1, lub true - wszystko inne (w tym "0" i 0) to nieaktywne
-      const isActive = active === '1' || active === 1 || active === true;
+
+      // Aktywne tylko dla wartości 1 / true.
+      const normalized = String(active).trim().toUpperCase();
+      const isActive = normalized === '1' || normalized === 'TRUE';
       if (!isActive) {
-        console.log('Product hidden: AKTYWNE=' + active + ' (type: ' + typeof active + ')');
+        console.log('Product hidden: AKTYWNE=' + active + ' (type: ' + typeof active + ') for product id=' + product.id);
       }
       return isActive;
     }
@@ -933,9 +937,10 @@
       // DEBUG: Log backend response
       console.log('Backend products data:', data);
       if (data.products && data.products.length > 0) {
-        console.log('First product AKTYWNE:', data.products[0].AKTYWNE);
+        console.log('First product keys:', Object.keys(data.products[0]));
+        console.log('First product AKTYWNE:', data.products[0].AKTYWNE, 'aktywne:', data.products[0].aktywne, 'active:', data.products[0].active);
         data.products.forEach(p => {
-          console.log('Product ' + p.id + ' (' + p.name + '): AKTYWNE = ' + p.AKTYWNE);
+          console.log('Product ' + p.id + ' (' + p.name + '): AKTYWNE=' + p.AKTYWNE + ', aktywne=' + p.aktywne + ', active=' + p.active);
         });
       }
 
