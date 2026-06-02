@@ -613,6 +613,9 @@
     }
 
     function startCheckout() {
+      isCartExpanded = false;
+      document.getElementById('cartDetails').classList.add('hidden');
+      document.getElementById('cartToggleText').innerText = 'Koszyk';
       renderCheckoutView();
       loadView('checkout-view');
     }
