@@ -145,7 +145,7 @@
         <p class="hint">Login (2 litery imienia + 2 nazwiska)</p>
         <input type="text" id="regLogin" maxlength="4" placeholder="AAAA" oninput="this.value = this.value.toUpperCase()">
         <p class="hint">PIN (4 cyfry)</p>
-        <input type="text" id="regPin" maxlength="4" placeholder="0000">
+        <input type="text" id="regPin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="0000">
         <p class="hint">Kod rejestracji</p>
         <input type="text" id="regCode" placeholder="Wpisz kod rejestracji">
         <button type="button" id="regBtn" onclick="runRegistration()">Zarejestruj się</button>
@@ -160,7 +160,7 @@
         <p class="hint">Login (2 litery imienia + 2 nazwiska)</p>
         <input type="text" id="balanceLogin" maxlength="4" placeholder="AAAA" oninput="this.value = this.value.toUpperCase()">
         <p class="hint">PIN (4 cyfry)</p>
-        <input type="password" id="balancePin" maxlength="4" placeholder="0000">
+        <input type="password" id="balancePin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="0000">
         <button type="button" id="balanceBtn" onclick="runCheckBalance()">Sprawdź saldo</button>
         <button type="button" class="secondary" onclick="goHome()">Wróć</button>
         <div id="balanceMsg"></div>
@@ -191,7 +191,7 @@
         <p class="hint">LOGIN</p>
         <input type="text" id="checkoutLogin" placeholder="LOGIN" oninput="this.value = this.value.toUpperCase()">
         <p class="hint">PIN</p>
-        <input type="password" id="checkoutPin" maxlength="4" placeholder="PIN">
+        <input type="password" id="checkoutPin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="PIN">
         <button type="button" id="checkoutSubmitBtn" onclick="runCheckoutPurchase()">Zrealizuj zakup</button>
         <button type="button" class="secondary" onclick="goHome()">Wróć</button>
         <div id="checkoutMsg" class="products-status"></div>
