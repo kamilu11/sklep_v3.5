@@ -844,6 +844,69 @@
       return isActive;
     }
 
+    // Grafiki z Drive pobieramy jako base64 przez backend (omija blokadę CORP),
+    // dopiero gdy karta pojawi się w widoku, z ograniczeniem równoległych zapytań.
+    const IMAGE_FETCH_CONCURRENCY = 4;
+    const imageDataCache = {};
+    const imageFetchQueue = [];
+    let imageFetchActive = 0;
+    const imageObserver = 'IntersectionObserver' in window
+      ? new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              imageObserver.unobserve(entry.target);
+              entry.target._loadImage();
+            }
+          });
+        }, { rootMargin: '200px' })
+      : null;
+
+    function fetchImageData(imageId) {
+      if (!imageDataCache[imageId]) {
+        imageDataCache[imageId] = new Promise(function(resolve, reject) {
+          imageFetchQueue.push({ imageId: imageId, resolve: resolve, reject: reject });
+          drainImageQueue();
+        });
+      }
+      return imageDataCache[imageId];
+    }
+
+    function drainImageQueue() {
+      while (imageFetchActive < IMAGE_FETCH_CONCURRENCY && imageFetchQueue.length > 0) {
+        const job = imageFetchQueue.shift();
+        imageFetchActive++;
+        apiRequest('getImage', { id: job.imageId }, 'GET')
+          .then(function(result) {
+            if (result && result.success && result.dataUrl) {
+              job.resolve(result.dataUrl);
+            } else {
+              throw new Error('Brak danych grafiki');
+            }
+          })
+          .catch(function(error) {
+            delete imageDataCache[job.imageId];
+            job.reject(error);
+          })
+          .finally(function() {
+            imageFetchActive--;
+            drainImageQueue();
+          });
+      }
+    }
+
+    function lazyLoadDriveImage(image, product) {
+      image._loadImage = function() {
+        fetchImageData(product.imageId)
+          .then(function(dataUrl) { image.src = dataUrl; })
+          .catch(function() { image.src = product.image; });
+      };
+      if (imageObserver) {
+        imageObserver.observe(image);
+      } else {
+        image._loadImage();
+      }
+    }
+
     function createProductCard(product) {
       const card = document.createElement('div');
       card.className = 'product-card';
@@ -856,9 +919,13 @@
       if (product.image) {
         const image = document.createElement('img');
         image.className = 'product-image';
-        image.src = product.image;
         image.alt = product.name;
         image.loading = 'lazy';
+        if (product.imageId) {
+          lazyLoadDriveImage(image, product);
+        } else {
+          image.src = product.image;
+        }
         imageWrapper.appendChild(image);
       } else {
         const noImage = document.createElement('div');
